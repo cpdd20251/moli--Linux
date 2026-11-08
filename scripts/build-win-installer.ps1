@@ -1,5 +1,6 @@
 param(
-  [switch]$ReusePayload
+  [switch]$ReusePayload,
+  [switch]$SetupOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,99 +22,101 @@ function Assert-UnderDist([string]$Path) {
   }
 }
 
-if (-not (Test-Path -LiteralPath $unpacked)) {
-  throw "electron-builder output is missing: $unpacked"
-}
+if (-not $SetupOnly) {
+  if (-not (Test-Path -LiteralPath $unpacked)) {
+    throw "electron-builder output is missing: $unpacked"
+  }
 
-$vmSource = Join-Path $projectRoot 'resources\vm'
-$rootParts = @(
-  Get-ChildItem -LiteralPath $vmSource -Filter 'root-seed.qcow2.part*' |
-    Where-Object { $_.Name -match '^root-seed\.qcow2\.part\d{3}$' } |
-    Sort-Object Name
-)
-if ($rootParts.Count -ne 4) {
-  throw "Expected four split Linux root image parts, found $($rootParts.Count)."
-}
-foreach ($part in $rootParts) {
-  if ($part.Length -le 0) {
-    throw "The Linux root image part is empty: $($part.FullName)"
+  $vmSource = Join-Path $projectRoot 'resources\vm'
+  $rootParts = @(
+    Get-ChildItem -LiteralPath $vmSource -Filter 'root-seed.qcow2.part*' |
+      Where-Object { $_.Name -match '^root-seed\.qcow2\.part\d{3}$' } |
+      Sort-Object Name
+  )
+  if ($rootParts.Count -ne 4) {
+    throw "Expected four split Linux root image parts, found $($rootParts.Count)."
   }
-}
-$rootTemplate = Join-Path $projectRoot 'resources\vm\root-overlay-template.qcow2'
-if (-not (Test-Path -LiteralPath $rootTemplate)) {
-  throw "The persistent disk template is missing: $rootTemplate"
-}
-$dataTemplate = Join-Path $projectRoot 'resources\vm\data-disk-template.qcow2'
-if (-not (Test-Path -LiteralPath $dataTemplate)) {
-  throw "The second disk template is missing: $dataTemplate"
-}
-$payloadVm = Join-Path $unpacked 'resources\vm'
-New-Item -ItemType Directory -Path $payloadVm -Force | Out-Null
-Get-ChildItem -LiteralPath $payloadVm -Filter 'root-seed.qcow2*' -ErrorAction SilentlyContinue |
-  ForEach-Object {
-    Assert-UnderDist $_.FullName
-    [System.IO.File]::Delete($_.FullName)
+  foreach ($part in $rootParts) {
+    if ($part.Length -le 0) {
+      throw "The Linux root image part is empty: $($part.FullName)"
+    }
   }
-foreach ($part in $rootParts) {
-  $payloadPart = Join-Path $payloadVm $part.Name
-  New-Item -ItemType HardLink -Path $payloadPart -Target $part.FullName | Out-Null
-  if ((Get-Item -LiteralPath $payloadPart).Length -ne $part.Length) {
-    throw "The staged Linux root image part is incomplete: $($part.Name)"
+  $rootTemplate = Join-Path $projectRoot 'resources\vm\root-overlay-template.qcow2'
+  if (-not (Test-Path -LiteralPath $rootTemplate)) {
+    throw "The persistent disk template is missing: $rootTemplate"
   }
-}
-$payloadTemplate = Join-Path $payloadVm 'root-overlay-template.qcow2'
-if (Test-Path -LiteralPath $payloadTemplate) {
-  Assert-UnderDist $payloadTemplate
-  [System.IO.File]::Delete($payloadTemplate)
-}
-New-Item -ItemType HardLink -Path $payloadTemplate -Target $rootTemplate | Out-Null
-if ((Get-Item -LiteralPath $payloadTemplate).Length -ne (Get-Item -LiteralPath $rootTemplate).Length) {
-  throw 'The staged persistent disk template is incomplete.'
-}
-$payloadDataTemplate = Join-Path $payloadVm 'data-disk-template.qcow2'
-if (Test-Path -LiteralPath $payloadDataTemplate) {
-  Assert-UnderDist $payloadDataTemplate
-  [System.IO.File]::Delete($payloadDataTemplate)
-}
-New-Item -ItemType HardLink -Path $payloadDataTemplate -Target $dataTemplate | Out-Null
-if ((Get-Item -LiteralPath $payloadDataTemplate).Length -ne (Get-Item -LiteralPath $dataTemplate).Length) {
-  throw 'The staged second disk template is incomplete.'
-}
+  $dataTemplate = Join-Path $projectRoot 'resources\vm\data-disk-template.qcow2'
+  if (-not (Test-Path -LiteralPath $dataTemplate)) {
+    throw "The second disk template is missing: $dataTemplate"
+  }
+  $payloadVm = Join-Path $unpacked 'resources\vm'
+  New-Item -ItemType Directory -Path $payloadVm -Force | Out-Null
+  Get-ChildItem -LiteralPath $payloadVm -Filter 'root-seed.qcow2*' -ErrorAction SilentlyContinue |
+    ForEach-Object {
+      Assert-UnderDist $_.FullName
+      [System.IO.File]::Delete($_.FullName)
+    }
+  foreach ($part in $rootParts) {
+    $payloadPart = Join-Path $payloadVm $part.Name
+    New-Item -ItemType HardLink -Path $payloadPart -Target $part.FullName | Out-Null
+    if ((Get-Item -LiteralPath $payloadPart).Length -ne $part.Length) {
+      throw "The staged Linux root image part is incomplete: $($part.Name)"
+    }
+  }
+  $payloadTemplate = Join-Path $payloadVm 'root-overlay-template.qcow2'
+  if (Test-Path -LiteralPath $payloadTemplate) {
+    Assert-UnderDist $payloadTemplate
+    [System.IO.File]::Delete($payloadTemplate)
+  }
+  New-Item -ItemType HardLink -Path $payloadTemplate -Target $rootTemplate | Out-Null
+  if ((Get-Item -LiteralPath $payloadTemplate).Length -ne (Get-Item -LiteralPath $rootTemplate).Length) {
+    throw 'The staged persistent disk template is incomplete.'
+  }
+  $payloadDataTemplate = Join-Path $payloadVm 'data-disk-template.qcow2'
+  if (Test-Path -LiteralPath $payloadDataTemplate) {
+    Assert-UnderDist $payloadDataTemplate
+    [System.IO.File]::Delete($payloadDataTemplate)
+  }
+  New-Item -ItemType HardLink -Path $payloadDataTemplate -Target $dataTemplate | Out-Null
+  if ((Get-Item -LiteralPath $payloadDataTemplate).Length -ne (Get-Item -LiteralPath $dataTemplate).Length) {
+    throw 'The staged second disk template is incomplete.'
+  }
 
-$appExecutable = Join-Path $unpacked 'Moli Linux.exe'
-$smokeOutput = Join-Path $distRoot 'devtools-smoke.out.log'
-$smokeError = Join-Path $distRoot 'devtools-smoke.err.log'
-foreach ($path in @($smokeOutput, $smokeError)) {
-  Assert-UnderDist $path
-  if (Test-Path -LiteralPath $path) {
-    [System.IO.File]::Delete($path)
+  $appExecutable = Join-Path $unpacked 'Moli Linux.exe'
+  $smokeOutput = Join-Path $distRoot 'devtools-smoke.out.log'
+  $smokeError = Join-Path $distRoot 'devtools-smoke.err.log'
+  foreach ($path in @($smokeOutput, $smokeError)) {
+    Assert-UnderDist $path
+    if (Test-Path -LiteralPath $path) {
+      [System.IO.File]::Delete($path)
+    }
   }
-}
-$previousDevToolsSmoke = $env:MOLI_DEVTOOLS_SMOKE
-$env:MOLI_DEVTOOLS_SMOKE = '1'
-try {
-  $smokeProcess = Start-Process `
-    -FilePath $appExecutable `
-    -Wait `
-    -PassThru `
-    -WindowStyle Hidden `
-    -RedirectStandardOutput $smokeOutput `
-    -RedirectStandardError $smokeError
-} finally {
-  $env:MOLI_DEVTOOLS_SMOKE = $previousDevToolsSmoke
-}
-$smokeText = if (Test-Path -LiteralPath $smokeOutput) {
-  Get-Content -LiteralPath $smokeOutput -Raw
-} else {
-  ''
-}
-if ($smokeProcess.ExitCode -ne 0 -or $smokeText -notmatch 'MOLI_DEVTOOLS_SMOKE=.*"ok":true') {
-  $smokeErrorText = if (Test-Path -LiteralPath $smokeError) {
-    Get-Content -LiteralPath $smokeError -Raw
+  $previousDevToolsSmoke = $env:MOLI_DEVTOOLS_SMOKE
+  $env:MOLI_DEVTOOLS_SMOKE = '1'
+  try {
+    $smokeProcess = Start-Process `
+      -FilePath $appExecutable `
+      -Wait `
+      -PassThru `
+      -WindowStyle Hidden `
+      -RedirectStandardOutput $smokeOutput `
+      -RedirectStandardError $smokeError
+  } finally {
+    $env:MOLI_DEVTOOLS_SMOKE = $previousDevToolsSmoke
+  }
+  $smokeText = if (Test-Path -LiteralPath $smokeOutput) {
+    Get-Content -LiteralPath $smokeOutput -Raw
   } else {
     ''
   }
-  throw "Packaged Developer Tools smoke test failed.`n$smokeText`n$smokeErrorText"
+  if ($smokeProcess.ExitCode -ne 0 -or $smokeText -notmatch 'MOLI_DEVTOOLS_SMOKE=.*"ok":true') {
+    $smokeErrorText = if (Test-Path -LiteralPath $smokeError) {
+      Get-Content -LiteralPath $smokeError -Raw
+    } else {
+      ''
+    }
+    throw "Packaged Developer Tools smoke test failed.`n$smokeText`n$smokeErrorText"
+  }
 }
 
 $sevenZip = Get-ChildItem `
@@ -134,8 +137,10 @@ $existingParts = @(
     -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -match '\.7z\.\d{3}$' }
 )
-if ($ReusePayload -and $existingParts.Count -gt 0) {
+if (($ReusePayload -or $SetupOnly) -and $existingParts.Count -gt 0) {
   Write-Output "Reusing $($existingParts.Count) existing payload volumes."
+} elseif ($SetupOnly) {
+  throw 'SetupOnly requires all existing payload volumes.'
 } else {
   if (Test-Path -LiteralPath $archive) {
     [System.IO.File]::Delete($archive)
@@ -171,7 +176,9 @@ if ($parts.Count -eq 0) {
 if (Test-Path -LiteralPath $archive) {
   [System.IO.File]::Delete($archive)
 }
-[System.IO.Directory]::Delete($unpacked, $true)
+if (Test-Path -LiteralPath $unpacked) {
+  [System.IO.Directory]::Delete($unpacked, $true)
+}
 
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $installerSource = Join-Path $projectRoot 'installer\MoliSetup.cs'

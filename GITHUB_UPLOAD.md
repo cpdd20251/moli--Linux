@@ -45,6 +45,10 @@ description.
 
 - Keep every Windows payload volume below 2 GiB so it can be uploaded as a
   GitHub Release asset.
-- Never upload only the Setup executable. The payload volumes are required.
+- Never upload only the Setup executable. The payload volumes must remain in the
+  Release even though Setup can download them automatically.
+- Users should only need to download the Setup executable. Setup reads the
+  browser's GitHub `HostUrl` marker, downloads all payload volumes, and verifies
+  them using `SHA256SUMS.txt`.
 - Test the downloaded release from a clean folder before making the repository
   public.

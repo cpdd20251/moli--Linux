@@ -20,8 +20,10 @@ Moli Linux 1.0.0 is the first public desktop release of the project.
 
 ### Windows x64
 
-Download the Setup executable and every payload volume into the same folder.
-Do not rename the payload files.
+Download only `Moli-Linux-1.0.0-win-x64-Setup.exe`. When it is downloaded
+directly from this GitHub Release, Setup downloads and verifies the four payload
+volumes automatically. For offline installation, download every payload volume
+beside the Setup executable. Do not rename the payload files.
 
 ### macOS
 
@@ -37,5 +39,7 @@ Do not rename the payload files.
 - Apple Silicon runs the x86-64 Linux guest through software emulation.
 - Software emulation (TCG) works without hardware virtualization but is slow.
 - The 64 GiB data disk is sparse and grows only as files are stored.
+- Automatic installer downloads require about 18 GB of temporary free space and
+  an internet connection.
 
 Verify downloads using `SHA256SUMS.txt`.

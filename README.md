@@ -28,14 +28,23 @@ host file only grows as data is written.
 
 ## Windows installation
 
-Download these files from the same GitHub Release into one folder:
+The recommended method is to download only:
 
 - `Moli-Linux-1.0.0-win-x64-Setup.exe`
-- every `Moli-Linux-1.0.0-win-x64-payload.7z.001`, `.002`, and later part
 
-Run `Moli-Linux-1.0.0-win-x64-Setup.exe` and keep all payload parts beside it.
-The installer supports a custom installation directory and creates desktop and
-Start menu shortcuts.
+When the installer was downloaded directly from the GitHub Release, it detects
+the release URL, downloads the required payload parts automatically, verifies
+their SHA-256 hashes, installs Moli Linux, and removes the temporary downloads.
+This avoids the common mistake of downloading the EXE without the split payload
+files. Allow at least 18 GB of temporary free space during this method.
+
+Offline/manual method: download the Setup executable and every
+`Moli-Linux-1.0.0-win-x64-payload.7z.001`, `.002`, `.003`, and `.004` file into
+one folder, then run the Setup executable. The installer supports a custom
+installation directory and creates desktop and Start menu shortcuts.
+
+If a third-party download manager strips the browser's download-source marker,
+use the offline/manual method.
 
 Hardware virtualization is recommended. Moli Linux automatically tries WHPX
 first and falls back to QEMU TCG when virtualization is unavailable. TCG works
@@ -119,8 +128,9 @@ QEMU 启动完整 Linux 系统，并显示在独立的 Windows 或 macOS 窗口�
 和 64 GiB 稀疏数据盘两块磁盘；数据盘挂载到 `/home/user/Data`，不会立刻占用
 64 GiB 空间。
 
-Windows 用户必须把 Setup 安装器和所有 `payload.7z.001` 分卷下载到同一目录，
-然后运行 Setup。安装包与 macOS DMG 目前均未签名，系统可能显示安全提示。
+Windows 用户推荐只下载 Setup 安装器。只要它是直接从 GitHub Release 下载的，
+安装器会自动下载 4 个分卷并校验 SHA-256。也可以手动把 Setup 和全部分卷放在
+同一目录离线安装。安装包与 macOS DMG 目前均未签名，系统可能显示安全提示。
 
 ## License
 

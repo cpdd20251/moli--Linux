@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Net;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -243,6 +246,10 @@ namespace MoliSetup
 
     internal sealed class SetupForm : Form
     {
+        private const string VersionTag = "1.0.0";
+        private const int ExpectedPayloadPartCount = 4;
+        private const long DownloadAndInstallSpace = 18L * 1024L * 1024L * 1024L;
+
         private readonly Color Background = Color.FromArgb(7, 23, 26);
         private readonly Color PanelColor = Color.FromArgb(15, 42, 47);
         private readonly Color Accent = Color.FromArgb(91, 214, 164);
@@ -254,9 +261,11 @@ namespace MoliSetup
         private readonly ProgressBar progressBar;
         private readonly Button installButton;
         private readonly CheckBox launchCheckBox;
-        private readonly string firstPayloadPart;
-        private readonly string[] payloadParts;
-        private readonly long payloadBytes;
+        private readonly string releaseBaseUrl;
+        private string firstPayloadPart;
+        private string[] payloadParts;
+        private long payloadBytes;
+        private bool payloadDownloaded;
 
         internal SetupForm(string[] args)
         {
@@ -279,7 +288,14 @@ namespace MoliSetup
             {
             }
 
+            releaseBaseUrl = FindReleaseBaseUrl();
             payloadParts = FindPayloadParts(out firstPayloadPart, out payloadBytes);
+            if (payloadParts.Length > 0 && payloadParts.Length != ExpectedPayloadPartCount)
+            {
+                payloadParts = new string[0];
+                firstPayloadPart = null;
+                payloadBytes = 0;
+            }
 
             Panel header = new Panel();
             header.Bounds = new Rectangle(0, 0, ClientSize.Width, 112);
@@ -331,11 +347,8 @@ namespace MoliSetup
             Controls.Add(browseButton);
 
             payloadLabel = new Label();
-            payloadLabel.Text = payloadParts.Length > 0
-                ? "Installer payload: " + FormatBytes(payloadBytes) + " in "
-                    + payloadParts.Length + " parts"
-                : "Installer payload is missing";
-            payloadLabel.ForeColor = payloadParts.Length > 0 ? Muted : Color.FromArgb(255, 142, 135);
+            payloadLabel.Text = PayloadDescription();
+            payloadLabel.ForeColor = CanInstall() ? Muted : Color.FromArgb(255, 142, 135);
             payloadLabel.AutoSize = true;
             payloadLabel.Location = new Point(36, 214);
             Controls.Add(payloadLabel);
@@ -360,7 +373,9 @@ namespace MoliSetup
             statusLabel = new Label();
             statusLabel.Text = payloadParts.Length > 0
                 ? "Ready to install"
-                : "Place all payload parts beside this installer and run it again.";
+                : (!string.IsNullOrEmpty(releaseBaseUrl)
+                    ? "Ready to download and install"
+                    : "Place all payload parts beside this installer and run it again.");
             statusLabel.ForeColor = Color.White;
             statusLabel.AutoSize = true;
             statusLabel.Location = new Point(36, 330);
@@ -392,7 +407,7 @@ namespace MoliSetup
             installButton.BackColor = Accent;
             installButton.ForeColor = Color.FromArgb(3, 35, 29);
             installButton.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
-            installButton.Enabled = payloadParts.Length > 0;
+            installButton.Enabled = CanInstall();
             installButton.Click += InstallButtonClick;
             Controls.Add(installButton);
             AcceptButton = installButton;
@@ -459,6 +474,70 @@ namespace MoliSetup
             return parts.ToArray();
         }
 
+        private bool CanInstall()
+        {
+            return payloadParts.Length == ExpectedPayloadPartCount
+                || !string.IsNullOrEmpty(releaseBaseUrl);
+        }
+
+        private string PayloadDescription()
+        {
+            if (payloadParts.Length == ExpectedPayloadPartCount)
+            {
+                return "Installer payload: " + FormatBytes(payloadBytes) + " in "
+                    + payloadParts.Length + " parts";
+            }
+            if (!string.IsNullOrEmpty(releaseBaseUrl))
+            {
+                return "The installer will download the required 4 payload parts";
+            }
+            return "Installer payload is missing";
+        }
+
+        private static string FindReleaseBaseUrl()
+        {
+            try
+            {
+                using (FileStream stream = new FileStream(
+                    Application.ExecutablePath + ":Zone.Identifier",
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite))
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (!line.StartsWith("HostUrl=", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+                        string value = line.Substring("HostUrl=".Length).Trim();
+                        Uri uri;
+                        if (!Uri.TryCreate(value, UriKind.Absolute, out uri)
+                            || !string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
+                            || (!string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
+                                && !string.Equals(uri.Host, "www.github.com", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            return null;
+                        }
+                        string sourcePath = uri.GetLeftPart(UriPartial.Path);
+                        int separator = sourcePath.LastIndexOf('/');
+                        if (separator <= "https://github.com".Length)
+                        {
+                            return null;
+                        }
+                        return sourcePath.Substring(0, separator + 1);
+                    }
+                }
+            }
+            catch
+            {
+                // The browser download marker is optional.
+            }
+            return null;
+        }
+
         private void BrowseButtonClick(object sender, EventArgs e)
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
@@ -498,7 +577,10 @@ namespace MoliSetup
             {
                 MessageBox.Show(
                     this,
-                    "At least 7 GB of free disk space is required for installation.",
+                    payloadParts.Length == ExpectedPayloadPartCount
+                        ? "At least 8 GB of free disk space is required for installation."
+                        : "At least 18 GB of free disk space is required while the installer "
+                            + "downloads and extracts the Linux desktop.",
                     "Moli Linux Setup",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
@@ -506,14 +588,20 @@ namespace MoliSetup
             }
 
             SetInstalling(true);
+            string temporaryDirectory = null;
             try
             {
                 Directory.CreateDirectory(target);
                 SetStatus("Preparing the installer...", 3);
-                string temporaryDirectory = Path.Combine(
+                temporaryDirectory = Path.Combine(
                     Path.GetTempPath(),
                     "MoliLinuxSetup-" + Guid.NewGuid().ToString("N"));
                 Directory.CreateDirectory(temporaryDirectory);
+
+                if (payloadParts.Length != ExpectedPayloadPartCount)
+                {
+                    await DownloadReleasePayload(temporaryDirectory);
+                }
 
                 string sevenZip = Path.Combine(temporaryDirectory, "7za.exe");
                 ExtractSevenZip(sevenZip);
@@ -589,6 +677,18 @@ namespace MoliSetup
             finally
             {
                 SetInstalling(false);
+                if (!string.IsNullOrEmpty(temporaryDirectory)
+                    && Directory.Exists(temporaryDirectory))
+                {
+                    try
+                    {
+                        Directory.Delete(temporaryDirectory, true);
+                    }
+                    catch
+                    {
+                        // Temporary files can be left behind if an antivirus scanner holds them.
+                    }
+                }
             }
         }
 
@@ -598,11 +698,169 @@ namespace MoliSetup
             {
                 string root = Path.GetPathRoot(target);
                 DriveInfo drive = new DriveInfo(root);
-                return drive.AvailableFreeSpace >= payloadBytes + 1024L * 1024L * 1024L;
+                long required = payloadParts.Length == ExpectedPayloadPartCount
+                    ? payloadBytes + 1024L * 1024L * 1024L
+                    : DownloadAndInstallSpace;
+                return drive.AvailableFreeSpace >= required;
             }
             catch
             {
                 return true;
+            }
+        }
+
+        private async System.Threading.Tasks.Task DownloadReleasePayload(string temporaryDirectory)
+        {
+            if (string.IsNullOrEmpty(releaseBaseUrl))
+            {
+                throw new InvalidOperationException(
+                    "The payload parts are missing. Download all payload files from the "
+                    + "GitHub Release and place them beside this installer.");
+            }
+
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            string manifestPath = Path.Combine(temporaryDirectory, "SHA256SUMS.txt");
+            SetStatus("Downloading release checksums...", 4);
+            await DownloadFileAsync(
+                new Uri(releaseBaseUrl + "SHA256SUMS.txt"),
+                manifestPath,
+                null);
+
+            string payloadName = "Moli-Linux-" + VersionTag + "-win-x64-payload.7z.";
+            Dictionary<string, string> expectedHashes = new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (string line in File.ReadAllLines(manifestPath))
+            {
+                Match match = Regex.Match(
+                    line.Trim(),
+                    @"^([0-9a-fA-F]{64})\s{2,}(Moli-Linux-[0-9.]+-win-x64-payload\.7z\.\d{3})$");
+                if (!match.Success || !match.Groups[2].Value.StartsWith(
+                    payloadName,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                expectedHashes[match.Groups[2].Value] = match.Groups[1].Value.ToLowerInvariant();
+            }
+            if (expectedHashes.Count != ExpectedPayloadPartCount)
+            {
+                throw new InvalidDataException(
+                    "The release checksum file does not list all four Windows payload parts.");
+            }
+
+            List<string> names = new List<string>(expectedHashes.Keys);
+            names.Sort(StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < names.Count; index++)
+            {
+                string expectedName = payloadName + (index + 1).ToString("D3");
+                if (!string.Equals(names[index], expectedName, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException("The release payload parts are incomplete.");
+                }
+            }
+
+            payloadParts = new string[names.Count];
+            for (int index = 0; index < names.Count; index++)
+            {
+                string name = names[index];
+                string destination = Path.Combine(temporaryDirectory, name);
+                int partNumber = index + 1;
+                SetStatus(
+                    "Downloading payload part " + partNumber + " of " + names.Count + "...",
+                    5);
+                await DownloadFileAsync(
+                    new Uri(releaseBaseUrl + name),
+                    destination,
+                    delegate(long received, long total)
+                    {
+                        double partProgress = total > 0 ? (double)received / total : 0;
+                        int overall = 5 + (int)((partNumber - 1 + partProgress)
+                            * 58 / names.Count);
+                        SetStatus(
+                            "Downloading payload part " + partNumber + " of " + names.Count
+                                + " (" + FormatBytes(received) + " / " + FormatBytes(total) + ")",
+                            overall);
+                    });
+
+                SetStatus("Verifying payload part " + partNumber + " of " + names.Count + "...", 64);
+                string actualHash = ComputeSha256(destination);
+                if (!string.Equals(
+                    actualHash,
+                    expectedHashes[name],
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Delete(destination);
+                    throw new InvalidDataException(
+                        "Payload part " + partNumber + " failed SHA-256 verification.");
+                }
+                payloadParts[index] = destination;
+            }
+
+            firstPayloadPart = payloadParts[0];
+            payloadDownloaded = true;
+            payloadBytes = 0;
+            foreach (string part in payloadParts)
+            {
+                payloadBytes += new FileInfo(part).Length;
+            }
+        }
+
+        private static System.Threading.Tasks.Task DownloadFileAsync(
+            Uri source,
+            string destination,
+            Action<long, long> progress)
+        {
+            System.Threading.Tasks.TaskCompletionSource<bool> completion =
+                new System.Threading.Tasks.TaskCompletionSource<bool>();
+            WebClient client = new WebClient();
+            client.Headers[HttpRequestHeader.UserAgent] = "Moli-Linux-Setup/" + VersionTag;
+            client.DownloadProgressChanged += delegate(object sender, DownloadProgressChangedEventArgs args)
+            {
+                if (progress != null)
+                {
+                    progress(args.BytesReceived, args.TotalBytesToReceive);
+                }
+            };
+            client.DownloadFileCompleted += delegate(object sender, System.ComponentModel.AsyncCompletedEventArgs args)
+            {
+                client.Dispose();
+                if (args.Error != null)
+                {
+                    completion.TrySetException(args.Error);
+                }
+                else if (args.Cancelled)
+                {
+                    completion.TrySetCanceled();
+                }
+                else
+                {
+                    completion.TrySetResult(true);
+                }
+            };
+            try
+            {
+                client.DownloadFileAsync(source, destination);
+            }
+            catch (Exception error)
+            {
+                client.Dispose();
+                completion.TrySetException(error);
+            }
+            return completion.Task;
+        }
+
+        private static string ComputeSha256(string filename)
+        {
+            using (SHA256 algorithm = SHA256.Create())
+            using (FileStream stream = File.OpenRead(filename))
+            {
+                byte[] hash = algorithm.ComputeHash(stream);
+                StringBuilder text = new StringBuilder(hash.Length * 2);
+                for (int index = 0; index < hash.Length; index++)
+                {
+                    text.Append(hash[index].ToString("x2"));
+                }
+                return text.ToString();
             }
         }
 
@@ -673,6 +931,10 @@ namespace MoliSetup
                 return;
             }
             value = Math.Max(7, Math.Min(88, 7 + value * 81 / 100));
+            if (payloadDownloaded)
+            {
+                value = Math.Max(64, Math.Min(90, 64 + value * 26 / 100));
+            }
             SetStatus("Installing the Linux application... " + match.Groups[1].Value + "%", value);
         }
 
@@ -767,7 +1029,9 @@ namespace MoliSetup
         {
             pathBox.Enabled = !installing;
             launchCheckBox.Enabled = !installing;
-            installButton.Enabled = !installing && payloadParts.Length > 0;
+            installButton.Enabled = !installing
+                && CanInstall()
+                && !string.Equals(installButton.Text, "Installed", StringComparison.Ordinal);
             if (installing)
             {
                 installButton.Text = "Installing...";

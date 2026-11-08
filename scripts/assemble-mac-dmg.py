@@ -124,6 +124,11 @@ def main() -> None:
     image.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(TEMPLATE, image)
     run_hfs(image, "grow", str(HFS_SIZE))
+    # hfsplus updates the volume header but does not reliably extend the host
+    # image. Without this truncate, dmg.exe can emit a truncated partition that
+    # references the full VM disk but cannot read data beyond the template size.
+    with image.open("r+b") as stream:
+        stream.truncate(HFS_SIZE)
     run_hfs(image, "mkdir", "/Moli Linux.app")
     run_hfs(image, "mkdir", "/Moli Linux.app/Contents")
     run_hfs(image, "mkdir", "/Moli Linux.app/Contents/Resources")

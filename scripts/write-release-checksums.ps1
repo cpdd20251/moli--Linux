@@ -1,3 +1,7 @@
+param(
+  [switch]$WindowsOnly
+)
+
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -5,24 +9,26 @@ $distRoot = Join-Path $projectRoot 'dist'
 $packageJson = Get-Content (Join-Path $projectRoot 'package.json') -Raw | ConvertFrom-Json
 $version = $packageJson.version
 
-$assets = @(
-  Get-ChildItem -LiteralPath $distRoot `
-    -Filter ("Moli-Linux-{0}-win-x64-Setup.exe" -f $version) `
-    -File
-  Get-ChildItem -LiteralPath $distRoot `
-    -Filter ("Moli-Linux-{0}-win-x64-payload.7z.*" -f $version) `
-    -File |
-    Where-Object { $_.Name -match '\.7z\.\d{3}$' }
-  Get-ChildItem -LiteralPath $distRoot `
+$assets = @()
+$assets += Get-ChildItem -LiteralPath $distRoot `
+  -Filter ("Moli-Linux-{0}-win-x64-Setup.exe" -f $version) `
+  -File
+$assets += Get-ChildItem -LiteralPath $distRoot `
+  -Filter ("Moli-Linux-{0}-win-x64-payload.7z.*" -f $version) `
+  -File |
+  Where-Object { $_.Name -match '\.7z\.\d{3}$' }
+if (-not $WindowsOnly) {
+  $assets += Get-ChildItem -LiteralPath $distRoot `
     -Filter ("Moli-Linux-{0}-mac-*.dmg" -f $version) `
     -File
-  Get-ChildItem -LiteralPath $distRoot `
-    -Filter ("Moli-Linux-{0}-source.zip" -f $version) `
-    -File
-)
+}
+$assets += Get-ChildItem -LiteralPath $distRoot `
+  -Filter ("Moli-Linux-{0}-source.zip" -f $version) `
+  -File
 
-if ($assets.Count -lt 5) {
-  throw "Expected the Windows package, payload volumes, both macOS DMGs, and source bundle."
+$minimumAssets = if ($WindowsOnly) { 6 } else { 8 }
+if ($assets.Count -lt $minimumAssets) {
+  throw "Expected the Windows package, payload volumes, optional macOS DMGs, and source bundle."
 }
 
 $githubLimit = 2GB
