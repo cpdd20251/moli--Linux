@@ -7,6 +7,16 @@ macOS application window. It is a complete local Linux workspace, not a
 website mock-up: the guest system boots through QEMU, has persistent storage,
 and can install and run normal Debian software.
 
+## Screenshots
+
+| Launch | Debian KDE desktop |
+| --- | --- |
+| ![Moli Linux launch screen](docs/screenshots/01-launch.png) | ![Debian KDE desktop](docs/screenshots/02-desktop.png) |
+
+| Simplified Chinese | Japanese |
+| --- | --- |
+| ![Simplified Chinese desktop](docs/screenshots/03-simplified-chinese.png) | ![Japanese desktop](docs/screenshots/04-japanese.png) |
+
 WSL is not required. Hyper-V or BIOS changes are not mandatory: Moli Linux uses
 WHPX when virtualization is available and automatically falls back to QEMU TCG.
 
