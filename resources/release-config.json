@@ -1,0 +1,4 @@
+{
+  "releaseBaseUrl": "https://github.com/OWNER/REPO/releases/latest/download/",
+  "downloadVmAssets": true
+}

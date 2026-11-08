@@ -18,6 +18,14 @@ const ISO_SHA256 = '37dedc921f50325665c75829597126b3eeb70ff5cd8c511a7230ace09ae9
 const ISO_URL = 'https://mirrors.tuna.tsinghua.edu.cn/debian-cd/current-live/amd64/iso-hybrid/' + ISO_FILE;
 const VM_MEMORY_MB = 3072;
 const VM_CPUS = 4;
+const VM_RUNTIME_FILES = [
+  'root-seed.qcow2.part001',
+  'root-seed.qcow2.part002',
+  'root-seed.qcow2.part003',
+  'root-seed.qcow2.part004',
+  'root-overlay-template.qcow2',
+  'data-disk-template.qcow2'
+];
 
 if (process.env.MOLI_SMOKE === '1' && process.platform === 'win32') {
   app.commandLine.appendSwitch('disable-gpu');
@@ -54,6 +62,8 @@ function appPaths() {
   const qemuDir = app.isPackaged
     ? path.join(resources, 'qemu')
     : path.join(resources, 'qemu', qemuPlatform);
+  const bundledVmDir = path.join(resources, 'vm');
+  const runtimeVmDir = path.join(dataRoot, 'vm', 'assets');
   return {
     resources,
     dataRoot,
@@ -64,11 +74,14 @@ function appPaths() {
     persistence: path.join(dataRoot, 'vm', 'persistence.qcow2'),
     persistenceSeed: path.join(resources, 'vm', 'persistence-seed.qcow2'),
     rootDisk: path.join(dataRoot, 'vm', 'root.qcow2'),
-    rootSeed: path.join(resources, 'vm', 'root-seed.qcow2'),
-    rootSeedParts: path.join(resources, 'vm'),
-    rootOverlayTemplate: path.join(resources, 'vm', 'root-overlay-template.qcow2'),
+    rootSeed: path.join(bundledVmDir, 'root-seed.qcow2'),
+    bundledVmDir,
+    runtimeVmDir,
+    rootSeedParts: bundledVmDir,
+    rootOverlayTemplate: path.join(bundledVmDir, 'root-overlay-template.qcow2'),
     dataDisk: path.join(dataRoot, 'vm', 'data.qcow2'),
-    dataDiskTemplate: path.join(resources, 'vm', 'data-disk-template.qcow2'),
+    dataDiskTemplate: path.join(bundledVmDir, 'data-disk-template.qcow2'),
+    releaseConfig: path.join(resources, 'release-config.json'),
     kernel: path.join(resources, 'boot', 'vmlinuz'),
     initrd: path.join(resources, 'boot', 'initrd.img'),
     qemu: path.join(qemuDir, qemuName),
@@ -327,6 +340,7 @@ async function startVm() {
       throw new Error('Linux boot files are missing. Please reinstall the application.');
     }
 
+    await ensureVmAssets(paths);
     const seedBacking = await prepareRootBacking(paths);
     await ensureRootDisk(paths, seedBacking);
     ensureDataDisk(paths);
@@ -448,6 +462,130 @@ function ensureDataDisk(paths) {
   }
   status('disk', 'Creating the second Linux data disk...');
   fs.copyFileSync(paths.dataDiskTemplate, paths.dataDisk, fs.constants.COPYFILE_EXCL);
+}
+
+async function ensureVmAssets(paths) {
+  const releaseConfig = fs.existsSync(paths.releaseConfig)
+    ? readReleaseConfig(paths.releaseConfig)
+    : null;
+  const preferRuntimeDownload = app.isPackaged
+    && process.platform === 'darwin'
+    && releaseConfig?.downloadVmAssets;
+  if (!preferRuntimeDownload && hasCompleteVmAssets(paths.bundledVmDir)) {
+    useVmAssetDirectory(paths, paths.bundledVmDir);
+    return;
+  }
+  if (hasCompleteVmAssets(paths.runtimeVmDir)) {
+    useVmAssetDirectory(paths, paths.runtimeVmDir);
+    return;
+  }
+
+  status('download', 'Downloading the Linux runtime for first launch...', { progress: 0 });
+  fs.mkdirSync(paths.runtimeVmDir, { recursive: true });
+  const config = releaseConfig || readReleaseConfig(paths.releaseConfig);
+  const manifestPath = path.join(paths.runtimeVmDir, 'SHA256SUMS.txt');
+  const partialManifest = manifestPath + '.part';
+  fs.rmSync(partialManifest, { force: true });
+  await downloadFile(new URL('SHA256SUMS.txt', config.releaseBaseUrl).toString(), partialManifest, () => {});
+  fs.rmSync(manifestPath, { force: true });
+  fs.renameSync(partialManifest, manifestPath);
+
+  const hashes = parseRuntimeChecksums(fs.readFileSync(manifestPath, 'utf8'));
+  for (let index = 0; index < VM_RUNTIME_FILES.length; index += 1) {
+    const name = VM_RUNTIME_FILES[index];
+    const expectedHash = hashes.get(name);
+    if (!expectedHash) {
+      throw new Error(`The release checksum file does not list ${name}.`);
+    }
+    const destination = path.join(paths.runtimeVmDir, name);
+    if (await fileHasSha256(destination, expectedHash)) continue;
+
+    const partial = destination + '.part';
+    status(
+      'download',
+      `Downloading Linux runtime file ${index + 1} of ${VM_RUNTIME_FILES.length}...`,
+      { progress: index / VM_RUNTIME_FILES.length }
+    );
+    await downloadFile(
+      new URL(name, config.releaseBaseUrl).toString(),
+      partial,
+      (received, total) => {
+        const fileProgress = total > 0 ? received / total : 0;
+        send('vm:download', {
+          received,
+          total,
+          progress: (index + fileProgress) / VM_RUNTIME_FILES.length,
+          message: `Downloading the Linux runtime (${formatBytes(received)} / ${formatBytes(total)})`
+        });
+      }
+    );
+    if (!(await fileHasSha256(partial, expectedHash))) {
+      fs.rmSync(partial, { force: true });
+      throw new Error(`${name} failed SHA-256 verification.`);
+    }
+    fs.rmSync(destination, { force: true });
+    fs.renameSync(partial, destination);
+  }
+
+  useVmAssetDirectory(paths, paths.runtimeVmDir);
+  status('download', 'Linux runtime download complete.', { progress: 1 });
+}
+
+function hasCompleteVmAssets(directory) {
+  try {
+    const parts = findRootSeedParts(directory);
+    return parts.length === 4
+      && fs.existsSync(path.join(directory, 'root-overlay-template.qcow2'))
+      && fs.existsSync(path.join(directory, 'data-disk-template.qcow2'));
+  } catch {
+    return false;
+  }
+}
+
+function useVmAssetDirectory(paths, directory) {
+  paths.rootSeedParts = directory;
+  paths.rootOverlayTemplate = path.join(directory, 'root-overlay-template.qcow2');
+  paths.dataDiskTemplate = path.join(directory, 'data-disk-template.qcow2');
+}
+
+function readReleaseConfig(filename) {
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(filename, 'utf8'));
+  } catch {
+    throw new Error(
+      'The Linux runtime download is not configured. Install a release build of Moli Linux.'
+    );
+  }
+  const baseUrl = String(config.releaseBaseUrl || '');
+  if (!baseUrl.startsWith('https://github.com/')
+      || !baseUrl.includes('/releases/')
+      || baseUrl.includes('OWNER/REPO')
+      || !baseUrl.endsWith('/')) {
+    throw new Error('The Linux runtime download URL is not configured for this release.');
+  }
+  return {
+    releaseBaseUrl: baseUrl,
+    downloadVmAssets: config.downloadVmAssets === true
+  };
+}
+
+function parseRuntimeChecksums(text) {
+  const hashes = new Map();
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.trim().match(/^([0-9a-fA-F]{64})\s{2,}(.+)$/);
+    if (match) hashes.set(match[2], match[1].toLowerCase());
+  }
+  return hashes;
+}
+
+async function fileHasSha256(filename, expectedHash) {
+  if (!fs.existsSync(filename)) return false;
+  try {
+    return await sha256File(filename) === expectedHash;
+  } catch {
+    return false;
+  }
 }
 
 async function prepareRootBacking(paths) {

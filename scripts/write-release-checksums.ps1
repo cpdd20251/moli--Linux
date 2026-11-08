@@ -25,8 +25,23 @@ if (-not $WindowsOnly) {
 $assets += Get-ChildItem -LiteralPath $distRoot `
   -Filter ("Moli-Linux-{0}-source.zip" -f $version) `
   -File
+$runtimeAssets = @(
+  'root-seed.qcow2.part001',
+  'root-seed.qcow2.part002',
+  'root-seed.qcow2.part003',
+  'root-seed.qcow2.part004',
+  'root-overlay-template.qcow2',
+  'data-disk-template.qcow2'
+)
+foreach ($name in $runtimeAssets) {
+  $path = Join-Path (Join-Path $projectRoot 'resources\vm') $name
+  if (-not (Test-Path -LiteralPath $path)) {
+    throw "The macOS runtime asset is missing: $path"
+  }
+  $assets += Get-Item -LiteralPath $path
+}
 
-$minimumAssets = if ($WindowsOnly) { 6 } else { 8 }
+$minimumAssets = if ($WindowsOnly) { 12 } else { 14 }
 if ($assets.Count -lt $minimumAssets) {
   throw "Expected the Windows package, payload volumes, optional macOS DMGs, and source bundle."
 }

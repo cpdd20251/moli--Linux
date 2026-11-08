@@ -1,6 +1,7 @@
 param(
   [string]$Output = '',
   [int]$Workers = 2,
+  [int]$ChunkSizeMB = 4,
   [switch]$Fresh
 )
 
@@ -16,8 +17,7 @@ $outputPath = if ($Output) {
 $temporaryDirectory = Join-Path (Split-Path -Parent $outputPath) 'utm-download'
 $releasePath = 'https://github.com/utmapp/UTM/releases/download/v5.0.8/UTM.dmg'
 $mirrors = @(
-  'https://gh-proxy.org/',
-  'https://ghproxy.imciel.com/'
+  'https://gh-proxy.com/'
 )
 $size = [int64]304304581
 $expectedHash = '7b2d7b2e2a02b3de1757ef19a8f36573e6d9cceae8c8cca0abcbcaa4a852019a'
@@ -28,7 +28,7 @@ if ($Fresh) {
     ForEach-Object { [System.IO.File]::Delete($_.FullName) }
 }
 
-$chunkSize = [int64](4MB)
+$chunkSize = [int64]$ChunkSizeMB * 1MB
 $totalChunks = [int][Math]::Ceiling($size / $chunkSize)
 
 for ($batchStart = 0; $batchStart -lt $totalChunks; $batchStart += $Workers) {

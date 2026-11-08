@@ -60,6 +60,12 @@ Choose the package for the Mac:
 
 Open the DMG and drag Moli Linux into Applications.
 
+The DMG contains the application and QEMU runtime. On the first launch, Moli
+Linux downloads the Debian runtime files from the same GitHub Release, verifies
+every file with SHA-256, and stores them in the user application-data folder.
+This keeps each DMG below GitHub's per-file limit. Allow an internet connection,
+about 8 GB of download traffic, and at least 10 GB of free disk space.
+
 The current macOS builds are unsigned and not notarized. macOS may require
 Control-clicking the application and choosing Open, or allowing it under
 System Settings > Privacy & Security. The Apple Silicon build runs the x86-64
@@ -93,8 +99,9 @@ is in `lib/`; and packaging scripts are in `scripts/`.
 
 - Windows packages are unsigned. SmartScreen can show an "Unknown publisher"
   warning.
-- macOS packages are unsigned, unnotarized, and have not been validated on
-  physical Mac hardware in this release.
+- macOS packages are unsigned and unnotarized. They were produced with
+  cross-platform DMG tooling but have not been validated on physical Mac
+  hardware in this release.
 - Apple Silicon uses TCG emulation for the x86-64 guest.
 - A cold VM boot can take several minutes, especially without hardware
   virtualization.
@@ -131,6 +138,9 @@ QEMU 启动完整 Linux 系统，并显示在独立的 Windows 或 macOS 窗口�
 Windows 用户推荐只下载 Setup 安装器。只要它是直接从 GitHub Release 下载的，
 安装器会自动下载 4 个分卷并校验 SHA-256。也可以手动把 Setup 和全部分卷放在
 同一目录离线安装。安装包与 macOS DMG 目前均未签名，系统可能显示安全提示。
+
+macOS 推荐只下载对应架构的 DMG。首次打开后会从同一个 GitHub Release 自动
+下载 Debian 运行盘并校验 SHA-256，所以 DMG 本身保持为小文件。
 
 ## License
 

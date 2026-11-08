@@ -30,12 +30,16 @@ beside the Setup executable. Do not rename the payload files.
 - `arm64`: Apple Silicon
 - `x64`: Intel Mac
 
+The macOS DMG contains the application, QEMU, and boot files. The first launch
+downloads the Debian runtime files from this Release and verifies their SHA-256
+hashes. About 8 GB of download traffic and 10 GB of free disk space are needed.
+
 ## Important notes
 
 - Windows and macOS packages are unsigned. SmartScreen and Gatekeeper warnings
   are expected.
-- The macOS packages were produced but have not been runtime-tested on physical
-  Mac hardware for this release.
+- The macOS packages were produced with cross-platform DMG tooling but have not
+  been runtime-tested on physical Mac hardware for this release.
 - Apple Silicon runs the x86-64 Linux guest through software emulation.
 - Software emulation (TCG) works without hardware virtualization but is slow.
 - The 64 GiB data disk is sparse and grows only as files are stored.

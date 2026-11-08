@@ -73,6 +73,17 @@ function Assert-UnderBuildRoot([string]$Path) {
 
 Resolve-Python
 
+if (-not (Test-Path -LiteralPath $electronApp) -and (Test-Path -LiteralPath $electronZip)) {
+  Invoke-Python -Arguments @(
+    (Join-Path $PSScriptRoot 'extract-mac-electron.py'),
+    $electronZip,
+    (Split-Path -Parent $electronApp)
+  )
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to extract the Electron macOS application.'
+  }
+}
+
 foreach ($required in @($electronApp, $electronZip)) {
   if (-not (Test-Path -LiteralPath $required)) {
     throw "Required Electron input is missing: $required"
@@ -158,9 +169,13 @@ Copy-Item -LiteralPath (Join-Path $projectRoot 'preload.js') -Destination $asarS
 Copy-Item -LiteralPath (Join-Path $projectRoot 'package.json') -Destination $asarStage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'dist-ui') `
   -Destination (Join-Path $asarStage 'dist-ui') -Recurse
+Copy-Item -LiteralPath (Join-Path $projectRoot 'lib') `
+  -Destination (Join-Path $asarStage 'lib') -Recurse
 New-Item -ItemType Directory -Path (Join-Path $asarStage 'resources') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $projectRoot 'resources\icon.png') `
   -Destination (Join-Path $asarStage 'resources\icon.png')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'resources\release-config.json') `
+  -Destination (Join-Path $asarStage 'resources\release-config.json')
 
 $asarOutput = Join-Path $resources 'app.asar'
 & (Join-Path $projectRoot 'node_modules\.bin\asar.cmd') pack $asarStage $asarOutput
@@ -175,6 +190,8 @@ Copy-Item -LiteralPath (Join-Path $projectRoot 'resources\boot\vmlinuz') `
   -Destination (Join-Path $resources 'boot\vmlinuz')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'resources\boot\initrd.img') `
   -Destination (Join-Path $resources 'boot\initrd.img')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'resources\release-config.json') `
+  -Destination (Join-Path $resources 'release-config.json')
 Set-Content -LiteralPath (Join-Path $resources '.moli-arch') -Value $Arch -Encoding ascii
 
 Write-Output $app

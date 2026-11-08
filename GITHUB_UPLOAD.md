@@ -35,6 +35,12 @@ Create tag `v1.0.0` and attach these files to the GitHub Release:
 - all `dist/Moli-Linux-1.0.0-win-x64-payload.7z.*` volumes
 - `dist/Moli-Linux-1.0.0-mac-arm64.dmg`
 - `dist/Moli-Linux-1.0.0-mac-x64.dmg`
+- `resources/vm/root-seed.qcow2.part001`
+- `resources/vm/root-seed.qcow2.part002`
+- `resources/vm/root-seed.qcow2.part003`
+- `resources/vm/root-seed.qcow2.part004`
+- `resources/vm/root-overlay-template.qcow2`
+- `resources/vm/data-disk-template.qcow2`
 - `dist/Moli-Linux-1.0.0-source.zip`
 - `dist/SHA256SUMS.txt`
 
@@ -50,5 +56,7 @@ description.
 - Users should only need to download the Setup executable. Setup reads the
   browser's GitHub `HostUrl` marker, downloads all payload volumes, and verifies
   them using `SHA256SUMS.txt`.
+- The six raw `resources/vm` files must be uploaded for the macOS first-launch
+  runtime download.
 - Test the downloaded release from a clean folder before making the repository
   public.
