@@ -1,0 +1,324 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", "Noto Sans", sans-serif;
+  background: #08090b;
+  color: #f4f5f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #08090b;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+.app-shell,
+.vnc-screen,
+.loading-screen {
+  position: absolute;
+  inset: 0;
+}
+
+.vnc-screen {
+  overflow: hidden;
+  background: #000;
+}
+
+.vnc-screen > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.vnc-screen canvas {
+  display: block;
+  margin: auto;
+}
+
+.loading-screen {
+  z-index: 10;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 32px;
+  background: #08090b;
+  transition: opacity .22s ease, visibility .22s;
+}
+
+.loading-screen.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-brand {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.boot-logo {
+  width: 78px;
+  height: 97px;
+  object-fit: contain;
+  margin-bottom: 24px;
+}
+
+.boot-product {
+  font-size: 31px;
+  font-weight: 400;
+  letter-spacing: -.035em;
+  line-height: 1;
+}
+
+.boot-meta {
+  margin-top: 10px;
+  color: #777c84;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.boot-spinner {
+  width: 27px;
+  height: 27px;
+  margin: 36px 0 20px;
+  border: 2px solid #272b31;
+  border-top-color: #d70a53;
+  border-radius: 50%;
+  animation: boot-spin .8s linear infinite;
+}
+
+@keyframes boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-track {
+  width: min(300px, 62vw);
+  height: 2px;
+  overflow: hidden;
+  background: #25292f;
+}
+
+.loading-track span {
+  display: block;
+  width: 4%;
+  height: 100%;
+  background: #d70a53;
+  transition: width .22s ease;
+}
+
+.status-text {
+  max-width: 620px;
+  margin: 17px 0 0;
+  color: #c9cdd3;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.detail-text {
+  min-height: 17px;
+  margin: 5px 0 0;
+  color: #70757d;
+  font-size: 10px;
+  text-align: center;
+}
+
+.loading-footer {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  color: #565b63;
+  font-size: 10px;
+}
+
+.language-picker {
+  position: absolute;
+  z-index: 30;
+  top: 12px;
+  left: 12px;
+  display: none;
+  align-items: center;
+  height: 29px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 6px;
+  background: rgba(8, 9, 11, .72);
+  backdrop-filter: blur(10px);
+}
+
+.language-picker.is-visible {
+  display: flex;
+}
+
+.language-picker::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background: #d70a53;
+}
+
+.language-picker select {
+  height: 100%;
+  padding: 0 27px 0 8px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e5e7ea;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.language-picker select option {
+  background: #15181c;
+  color: #e5e7ea;
+}
+
+.error-panel {
+  width: min(520px, 78vw);
+  margin-top: 22px;
+  padding: 15px;
+  border: 1px solid #5d2932;
+  border-radius: 7px;
+  background: #1a1013;
+}
+
+.error-panel strong {
+  font-size: 12px;
+}
+
+.error-panel p {
+  color: #c0c3c8;
+  font-size: 10px;
+  line-height: 1.6;
+  user-select: text;
+}
+
+.error-panel button,
+.dialog-actions button {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #343941;
+  border-radius: 5px;
+  background: #181b20;
+  color: #f0f1f3;
+  cursor: pointer;
+}
+
+.error-panel button:hover,
+.dialog-actions button:hover {
+  background: #23272d;
+}
+
+.connection-badge {
+  position: absolute;
+  z-index: 20;
+  right: 12px;
+  top: 12px;
+  height: 29px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 6px;
+  background: rgba(8, 9, 11, .72);
+  color: #c5c9cf;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: .65;
+  backdrop-filter: blur(10px);
+}
+
+.connection-badge:hover {
+  opacity: 1;
+}
+
+.info-dialog {
+  width: min(540px, 84vw);
+  padding: 20px;
+  border: 1px solid #343941;
+  border-radius: 8px;
+  background: #121519;
+  color: #f0f1f3;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .62);
+}
+
+.info-dialog::backdrop {
+  background: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.dialog-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.dialog-heading p {
+  margin: 5px 0 0;
+  color: #7f858e;
+  font-size: 10px;
+}
+
+.dialog-heading > button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #8c929a;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.dialog-heading > button:hover {
+  background: #20242a;
+}
+
+#infoList {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 9px 12px;
+  margin: 20px 0;
+  font-size: 10px;
+}
+
+#infoList dt {
+  color: #737981;
+}
+
+#infoList dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+  white-space: pre-line;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

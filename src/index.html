@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ws://127.0.0.1:*; object-src 'none'"
+  >
+  <title>Moli Linux</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <div id="screen" class="vnc-screen" aria-label="Debian KDE desktop"></div>
+
+    <label class="language-picker" for="languageSelect">
+      <select id="languageSelect" aria-label="Language"></select>
+    </label>
+
+    <section id="loading" class="loading-screen">
+      <div class="boot-brand">
+        <img class="boot-logo" src="./debian-logo.svg" alt="Debian">
+        <div class="boot-product">Moli Linux</div>
+        <div class="boot-meta">Debian 13 · KDE Plasma</div>
+      </div>
+
+      <div class="boot-spinner" aria-hidden="true"></div>
+
+      <div class="loading-track" aria-hidden="true">
+        <span id="progressBar"></span>
+      </div>
+      <p id="statusText" class="status-text">Preparing the Linux environment...</p>
+      <p id="detailText" class="detail-text"></p>
+
+      <div id="errorPanel" class="error-panel" hidden>
+        <strong id="errorTitle">Linux environment failed to start</strong>
+        <p id="errorText"></p>
+        <button id="retryButton" type="button">Try again</button>
+      </div>
+
+      <div class="loading-footer">
+        <span>Debian 13 · x86_64</span>
+        <span id="downloadHint">Offline Debian image included · about 7.5 GB installed</span>
+      </div>
+    </section>
+
+    <button id="connectionBadge" class="connection-badge" type="button" hidden>
+      Connected · Details
+    </button>
+
+    <dialog id="infoDialog" class="info-dialog">
+      <div class="dialog-heading">
+        <div>
+          <h2>Moli Linux</h2>
+          <p id="dialogSubtitle">A real Debian virtual machine in a native window</p>
+        </div>
+        <button id="closeInfoButton" type="button" aria-label="Close">×</button>
+      </div>
+      <dl id="infoList"></dl>
+      <div class="dialog-actions">
+        <button id="restartButton" type="button">Restart Linux</button>
+        <button id="stopButton" type="button">Shut down</button>
+      </div>
+    </dialog>
+  </main>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+{
+  "name": "moli-linux",
+  "version": "1.0.0",
+  "description": "Moli Linux - A real Debian KDE desktop in a native Windows or macOS window",
+  "main": "main.js",
+  "author": "Moli Linux Project",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "scripts": {
+    "build:ui": "vite build",
+    "start": "npm run build:ui && electron .",
+    "smoke": "npm run build:ui && node scripts/smoke.js",
+    "smoke:devtools": "npm run build:ui && node scripts/devtools-smoke.js",
+    "dist": "npm run build:ui && electron-builder",
+    "dist:win": "npm run build:ui && electron-builder --win dir --x64 --config.electronDist=node_modules/electron/dist && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-win-installer.ps1",
+    "dist:mac": "npm run build:ui && electron-builder --mac dmg --x64 --arm64"
+  },
+  "dependencies": {
+    "@novnc/novnc": "1.7.0"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "vite": "7.2.2"
+  },
+  "build": {
+    "appId": "com.moli.linux",
+    "productName": "Moli Linux",
+    "artifactName": "Moli-Linux-${version}-${os}-${arch}.${ext}",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**/*",
+      "dist-ui/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.png",
+      "extraResources": [
+        {
+          "from": "resources/qemu/win",
+          "to": "qemu"
+        },
+        {
+          "from": "resources/boot",
+          "to": "boot"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Moli Linux"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "resources/icon.png",
+      "extraResources": [
+        {
+          "from": "resources/qemu/mac",
+          "to": "qemu"
+        },
+        {
+          "from": "resources/boot",
+          "to": "boot"
+        },
+        {
+          "from": "resources/vm",
+          "to": "vm"
+        }
+      ]
+    },
+    "dmg": {
+      "title": "Moli Linux ${version}",
+      "backgroundColor": "#071719",
+      "window": {
+        "width": 620,
+        "height": 420
+      },
+      "contents": [
+        {
+          "x": 170,
+          "y": 210,
+          "type": "file"
+        },
+        {
+          "x": 450,
+          "y": 210,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}
+

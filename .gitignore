@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-ui/
+work/
+
+resources/qemu/*
+!resources/qemu/.gitkeep
+resources/boot/*
+!resources/boot/.gitkeep
+resources/vm/*
+!resources/vm/.gitkeep
+
+*.log
+*.tmp
+.DS_Store
+__pycache__/
+*.py[cod]
