@@ -7,6 +7,8 @@ macOS application window. It is a complete local Linux workspace, not a
 website mock-up: the guest system boots through QEMU, has persistent storage,
 and can install and run normal Debian software.
 
+> 使用deepseek 开发
+
 ## Screenshots
 
 | Launch | Debian KDE desktop |
