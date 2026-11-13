@@ -1,49 +1,54 @@
-# Moli Linux 1.0.0
+# Moli Linux 1.0.0 正式版
 
-Moli Linux 1.0.0 is the first public desktop release of the project.
+Moli Linux 1.0.0 是本项目第一次公开发布的桌面版本。
 
-## Highlights
+## 功能亮点
 
-- Real Debian 13.7 KDE Plasma guest running locally through QEMU
-- Dedicated Windows and macOS application windows
-- Two disks by default: a persistent system disk and a 64 GiB sparse data disk
-- Data disk automatically formatted, mounted at `/home/user/Data`, and linked
-  from the guest desktop
-- Hardware virtualization with automatic WHPX/HVF detection and TCG fallback
-- No WSL installation required; TCG fallback works without enabling Hyper-V
-- English and Simplified Chinese interface switching
-- Host/guest shared folder
-- Split-disk streaming for large Debian images
-- Host Developer Tools support
+- 通过 QEMU 在本机运行完整的 Debian 13.7 KDE Plasma 桌面
+- 独立的 Windows / macOS 应用窗口
+- 默认两块磁盘：持久化系统盘 + 64 GiB 稀疏数据盘
+- 数据盘自动格式化并挂载到 `/home/user/Data`，客户机桌面可直接访问
+- 硬件虚拟化自动探测：优先 WHPX/HVF，不可用时回退 TCG 软件模拟
+- 无需安装 WSL，也无需开启 Hyper-V
+- 中英文界面切换
+- 主机与客户机共享文件夹
+- 大体积 Debian 镜像分卷流式加载
+- 支持主机开发者工具调试
 
-## Download
+## 下载
 
 ### Windows x64
 
-Download only `Moli-Linux-1.0.0-win-x64-Setup.exe`. When it is downloaded
-directly from this GitHub Release, Setup downloads and verifies the four payload
-volumes automatically. For offline installation, download every payload volume
-beside the Setup executable. Do not rename the payload files.
+只需要下载 `Moli-Linux-1.0.0-win-x64-Setup.exe`。
+
+只要安装包是用浏览器直接从本 Release 页面下载的，运行后安装器会自动下载 4 个
+payload 分卷、逐个校验 SHA-256 并完成安装，随后清理临时文件。需要约 18 GB
+临时可用空间并保持联网。
+
+**无需手动下载 001~004 分卷。** 只有特殊情况——例如安装分卷损坏、或引导遭受
+破坏需要重装时——才需要手动下载全部分卷，与 Setup 放在同一目录（原有损坏的
+分卷可先删除），然后离线安装。
+
+用迅雷、IDM 等第三方下载器下载的 Setup 会丢失浏览器的"下载来源"标记，安装器
+将无法自动下载分卷；此时请改用手动方式。任何情况下都不要重命名分卷文件。
 
 ### macOS
 
-- `arm64`: Apple Silicon
-- `x64`: Intel Mac
+- `arm64`：Apple Silicon
+- `x64`：Intel Mac
 
-The macOS DMG contains the application, QEMU, and boot files. The first launch
-downloads the Debian runtime files from this Release and verifies their SHA-256
-hashes. About 8 GB of download traffic and 10 GB of free disk space are needed.
+DMG 中包含应用本体、QEMU 和引导文件。首次启动时会从本 Release 下载 Debian
+运行盘文件并校验 SHA-256，约需 8 GB 下载流量和至少 10 GB 磁盘空间。
 
-## Important notes
+## 重要说明
 
-- Windows and macOS packages are unsigned. SmartScreen and Gatekeeper warnings
-  are expected.
-- The macOS packages were produced with cross-platform DMG tooling but have not
-  been runtime-tested on physical Mac hardware for this release.
-- Apple Silicon runs the x86-64 Linux guest through software emulation.
-- Software emulation (TCG) works without hardware virtualization but is slow.
-- The 64 GiB data disk is sparse and grows only as files are stored.
-- Automatic installer downloads require about 18 GB of temporary free space and
-  an internet connection.
+- Windows 和 macOS 安装包均未签名，SmartScreen / Gatekeeper 提示属正常现象。
+- macOS 包使用跨平台 DMG 工具生成，本版本尚未在实体 Mac 硬件上验证运行。
+- Apple Silicon 通过软件模拟运行 x86-64 客户机，速度较慢。
+- 软件模拟（TCG）不需要硬件虚拟化即可使用，但性能明显低于 WHPX/HVF。
+- 64 GiB 数据盘是稀疏文件，只有写入数据时才会增长。
+- 安装器自动下载分卷需要约 18 GB 临时空闲空间和可用的网络连接。
 
-Verify downloads using `SHA256SUMS.txt`.
+下载后请使用 `SHA256SUMS.txt` 校验文件完整性。
+
+声明：此项目由 DeepSeek 开发而成。

@@ -2,95 +2,84 @@
 
 ![Moli Linux](resources/icon.png)
 
-Moli Linux runs a real Debian 13 KDE desktop inside a dedicated Windows or
-macOS application window. It is a complete local Linux workspace, not a
-website mock-up: the guest system boots through QEMU, has persistent storage,
-and can install and run normal Debian software.
+Moli Linux 在独立的 Windows 或 macOS 应用窗口中运行完整的 Debian 13 KDE
+桌面。它是本地 Linux 工作环境，不是网页模拟：客户机系统通过 QEMU 真实启动，
+拥有持久化存储，可以正常安装和运行 Debian 软件。
 
-> 使用deepseek 开发
+> 声明：此项目由 DeepSeek 开发而成
 
-## Screenshots
+## 截图
 
-| Launch | Debian KDE desktop |
+| 启动界面 | Debian KDE 桌面 |
 | --- | --- |
-| ![Moli Linux launch screen](docs/screenshots/01-launch.png) | ![Debian KDE desktop](docs/screenshots/02-desktop.png) |
+| ![Moli Linux 启动界面](docs/screenshots/01-launch.png) | ![Debian KDE 桌面](docs/screenshots/02-desktop.png) |
 
-| Simplified Chinese | Japanese |
+| 简体中文桌面 | 日语桌面 |
 | --- | --- |
-| ![Simplified Chinese desktop](docs/screenshots/03-simplified-chinese.png) | ![Japanese desktop](docs/screenshots/04-japanese.png) |
+| ![简体中文桌面](docs/screenshots/03-simplified-chinese.png) | ![日语桌面](docs/screenshots/04-japanese.png) |
 
-WSL is not required. Hyper-V or BIOS changes are not mandatory: Moli Linux uses
-WHPX when virtualization is available and automatically falls back to QEMU TCG.
+无需安装 WSL，也不必修改 Hyper-V 或 BIOS：有硬件虚拟化时 Moli Linux 使用
+WHPX，不可用时自动回退到 QEMU TCG 软件模拟。
 
-## What is included
+## 包含内容
 
-- Debian 13.7 with KDE Plasma
-- A native Electron window with maximize, full screen, and Developer Tools
-- QEMU virtualization with WHPX on Windows and HVF where available on macOS
-- Automatic software fallback when hardware virtualization is unavailable
-- A persistent copy-on-write system disk
-- Two disks by default: the Debian system disk and a 64 GiB sparse data disk
-- The data disk mounted at `/home/user/Data` and linked from the desktop
-- A shared folder between the host and guest at `Documents/MoliLinuxShare`
-- English and Simplified Chinese interface switching
-- Linux keyboard, mouse, audio, networking, and display integration
+- Debian 13.7 + KDE Plasma
+- 原生 Electron 窗口，支持最大化、全屏和开发者工具
+- QEMU 虚拟化：Windows 使用 WHPX，macOS 在可用时使用 HVF
+- 硬件虚拟化不可用时自动回退软件模拟
+- 持久化的写时复制系统盘
+- 默认两块磁盘：Debian 系统盘 + 64 GiB 稀疏数据盘
+- 数据盘挂载到 `/home/user/Data`，并在客户机桌面创建链接
+- 主机与客户机共享文件夹：`Documents/MoliLinuxShare`
+- 中英文界面切换
+- 键盘、鼠标、音频、网络、显示一体化集成
 
-The 64 GiB data disk is sparse. It does not reserve 64 GiB immediately; its
-host file only grows as data is written.
+64 GiB 数据盘是稀疏文件，不会立即占用 64 GiB 空间，只有实际写入数据时才会增长。
 
-## Windows installation
+## Windows 安装
 
-The recommended method is to download only:
+推荐只下载一个文件：
 
 - `Moli-Linux-1.0.0-win-x64-Setup.exe`
 
-When the installer was downloaded directly from the GitHub Release, it detects
-the release URL, downloads the required payload parts automatically, verifies
-their SHA-256 hashes, installs Moli Linux, and removes the temporary downloads.
-This avoids the common mistake of downloading the EXE without the split payload
-files. Allow at least 18 GB of temporary free space during this method.
+只要安装包是**用浏览器直接从本 GitHub Release 下载的**，安装器就能识别发布
+地址，自动下载 4 个 payload 分卷、逐个校验 SHA-256 后完成安装，并清理临时
+下载文件。这种方式需要至少 18 GB 临时可用空间。
 
-Offline/manual method: download the Setup executable and every
-`Moli-Linux-1.0.0-win-x64-payload.7z.001`, `.002`, `.003`, and `.004` file into
-one folder, then run the Setup executable. The installer supports a custom
-installation directory and creates desktop and Start menu shortcuts.
+**无需手动下载 001~004 分卷。** 只有特殊情况——例如安装分卷损坏、或引导遭受
+破坏需要重装时——才需要手动把 4 个分卷和 Setup 放在同一目录（原有损坏的分卷
+可先删除），然后运行 Setup 离线安装。
 
-If a third-party download manager strips the browser's download-source marker,
-use the offline/manual method.
+注意：用迅雷、IDM 等第三方下载器下载的 Setup 会丢失浏览器的"下载来源"标记，
+安装器将无法自动下载分卷；此时请改用上面的手动方式。任何情况下都不要重命名
+分卷文件。
 
-Hardware virtualization is recommended. Moli Linux automatically tries WHPX
-first and falls back to QEMU TCG when virtualization is unavailable. TCG works
-without changing BIOS or Windows features, but startup and desktop performance
-are significantly slower.
+硬件虚拟化建议开启。Moli Linux 会优先尝试 WHPX，不可用时回退到 QEMU TCG。
+TCG 不需要改 BIOS 或开启任何 Windows 功能，但启动和桌面性能会明显变慢。
 
-## macOS installation
+## macOS 安装
 
-Choose the package for the Mac:
+按 Mac 的芯片选择安装包：
 
-- Apple Silicon: `Moli-Linux-1.0.0-mac-arm64.dmg`
-- Intel: `Moli-Linux-1.0.0-mac-x64.dmg`
+- Apple Silicon：`Moli-Linux-1.0.0-mac-arm64.dmg`
+- Intel：`Moli-Linux-1.0.0-mac-x64.dmg`
 
-Open the DMG and drag Moli Linux into Applications.
+打开 DMG，把 Moli Linux 拖入"应用程序"。DMG 体积小，是因为首次启动时会从
+同一个 GitHub Release 下载 Debian 运行盘文件并校验 SHA-256，保存到用户应用
+数据目录。请保持联网，预留约 8 GB 下载流量和至少 10 GB 磁盘空间。
 
-The DMG contains the application and QEMU runtime. On the first launch, Moli
-Linux downloads the Debian runtime files from the same GitHub Release, verifies
-every file with SHA-256, and stores them in the user application-data folder.
-This keeps each DMG below GitHub's per-file limit. Allow an internet connection,
-about 8 GB of download traffic, and at least 10 GB of free disk space.
+本版本的 macOS 包未签名、未公证。macOS 可能会要求右键点击应用选择"打开"，
+或在"系统设置 > 隐私与安全性"中放行。Apple Silicon 版本通过软件模拟运行
+x86-64 客户机，速度会比 Intel 版本慢。
 
-The current macOS builds are unsigned and not notarized. macOS may require
-Control-clicking the application and choosing Open, or allowing it under
-System Settings > Privacy & Security. The Apple Silicon build runs the x86-64
-Debian guest through software emulation and will be slower than the Intel build.
+## 从源码构建
 
-## Build from source
+依赖：
 
-Requirements:
-
-- Node.js 20 or newer
+- Node.js 20 或更新版本
 - npm
-- Windows 10/11 x64 for the Windows package
-- The runtime assets referenced by `package.json`
+- Windows 10/11 x64（构建 Windows 安装包时）
+- `package.json` 中引用的运行时资源
 
 ```powershell
 npm install
@@ -99,61 +88,41 @@ npm run smoke
 npm run dist:win
 ```
 
-Runtime components are intentionally not stored in normal Git history because
-the QEMU binaries and Debian disk images are several gigabytes. Builders need to
-place the documented runtime files under `resources/qemu`, `resources/boot`, and
-`resources/vm`, or use the release source bundle and release assets together.
+QEMU 二进制和 Debian 磁盘镜像体积达数 GB，因此不放进常规 Git 历史。构建者
+需要按文档把运行时文件放到 `resources/qemu`、`resources/boot` 和
+`resources/vm`，或者结合 Release 源码包与 Release 附件使用。
 
-The main process is in `main.js`; the renderer is in `src/`; split-disk support
-is in `lib/`; and packaging scripts are in `scripts/`.
+主进程在 `main.js`，渲染器在 `src/`，分卷磁盘支持在 `lib/`，打包脚本在
+`scripts/`。
 
-## Known limitations
+## 已知限制
 
-- Windows packages are unsigned. SmartScreen can show an "Unknown publisher"
-  warning.
-- macOS packages are unsigned and unnotarized. They were produced with
-  cross-platform DMG tooling but have not been validated on physical Mac
-  hardware in this release.
-- Apple Silicon uses TCG emulation for the x86-64 guest.
-- A cold VM boot can take several minutes, especially without hardware
-  virtualization.
-- The installer and installed application require several gigabytes of disk
-  space.
+- Windows 安装包未签名，SmartScreen 可能提示"未知发布者"。
+- macOS 安装包未签名、未公证。本版本使用跨平台 DMG 工具生成，尚未在实体
+  Mac 硬件上验证运行。
+- Apple Silicon 通过 TCG 软件模拟运行 x86-64 客户机。
+- 冷启动虚拟机可能需要几分钟，尤其是没有硬件虚拟化时。
+- 安装器和安装后的应用需要数 GB 磁盘空间。
 
-## Verification
+## 校验
 
-After downloading a release, verify the files with the commands for your
-platform.
+下载后用对应平台的命令校验文件。
 
-Windows PowerShell:
+Windows PowerShell：
 
 ```powershell
 Get-FileHash .\Moli-Linux-1.0.0-win-x64-Setup.exe -Algorithm SHA256
 ```
 
-macOS:
+macOS：
 
 ```sh
 shasum -a 256 Moli-Linux-1.0.0-mac-arm64.dmg
 shasum -a 256 Moli-Linux-1.0.0-mac-x64.dmg
 ```
 
-Compare the output with `SHA256SUMS.txt` in the release.
+将输出与 Release 中的 `SHA256SUMS.txt` 对照。
 
-## 中文说明
+## 许可证
 
-Moli Linux 是一个真正运行 Debian 13 KDE 的桌面应用，不是网页模拟器。它通过
-QEMU 启动完整 Linux 系统，并显示在独立的 Windows 或 macOS 窗口中。默认有系统盘
-和 64 GiB 稀疏数据盘两块磁盘；数据盘挂载到 `/home/user/Data`，不会立刻占用
-64 GiB 空间。
-
-Windows 用户推荐只下载 Setup 安装器。只要它是直接从 GitHub Release 下载的，
-安装器会自动下载 4 个分卷并校验 SHA-256。也可以手动把 Setup 和全部分卷放在
-同一目录离线安装。安装包与 macOS DMG 目前均未签名，系统可能显示安全提示。
-
-macOS 推荐只下载对应架构的 DMG。首次打开后会从同一个 GitHub Release 自动
-下载 Debian 运行盘并校验 SHA-256，所以 DMG 本身保持为小文件。
-
-## License
-
-GPL-3.0-or-later. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
+GPL-3.0-or-later，详见 `LICENSE` 和 `THIRD_PARTY_NOTICES.md`。
